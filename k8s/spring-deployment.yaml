@@ -1,0 +1,57 @@
+# ConfigMap pour la configuration non sensible
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-config
+data:
+  SPRING_DATASOURCE_URL: jdbc:mysql://mysql-service:3306/springdb
+---
+# Secret pour les credentials (base64 encoded)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spring-secret
+type: Opaque
+data:
+  SPRING_DATASOURCE_USERNAME: c3ByaW5n
+  SPRING_DATASOURCE_PASSWORD: c3ByaW5nMTIz
+---
+# Deployment Spring Boot
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spring-app
+  template:
+    metadata:
+      labels:
+        app: spring-app
+    spec:
+      containers:
+      - name: spring-app
+        image: <dockerhub-user>/spring-app:1.0  # Remplace par ton image Docker
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: spring-config
+        - secretRef:
+            name: spring-secret
+---
+# Service (NodePort pour l'accès externe)
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-service
+spec:
+  selector:
+    app: spring-app
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080  # Port optionnel pour NodePort (30000-32767)
+  type: NodePort
